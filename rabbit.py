@@ -20,14 +20,17 @@ def listen_to_queue(channel, method, properties, body):
     print(f"Received command to process Coda links")
     channel.stop_consuming()
     links = fetch_coda_links()
-    send_coda_links_queue(links)
+    delimiter = " "
+    combined_string = delimiter.join(links)
+    list_in_bytes = combined_string.encode("utf-8")
+    send_coda_links_queue(list_in_bytes)
+    print(f"Coda links size {len(links)} sent!")
 
 
-def send_coda_links_queue(links: List[str]):
+def send_coda_links_queue(links_in_bytes: bytes):
     # need to add broker credentials
     connection = pika.BlockingConnection(pika.ConnectionParameters(host=RABBIT_HOST))
     channel = connection.channel()
     channel.queue_declare(queue=CODA_REPLY_QUEUE)
-    channel.basic_publish(exchange='', routing_key=CODA_REPLY_QUEUE, body=links)
-    print(f"Coda links size {len(links)} sent!")
+    channel.basic_publish(exchange='', routing_key=CODA_REPLY_QUEUE, body=links_in_bytes)
     connection.close()
